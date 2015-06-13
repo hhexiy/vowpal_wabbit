@@ -241,7 +241,7 @@ AUTOMAKE = ${SHELL} /home/hhe/projects/vowpal_wabbit/missing automake-1.14
 AWK = mawk
 BOOST_CPPFLAGS = -I/usr/include
 BOOST_LDFLAGS = -L/usr/lib/x86_64-linux-gnu
-BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options -lboost_system -lboost_filesystem
+BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
@@ -273,7 +273,7 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = 
 LIBOBJS = 
-LIBS = 
+LIBS = -lboost_system -lboost_filesystem
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s

@@ -72,6 +72,7 @@ void predict_or_learn(oaa& o, LEARNER::base_learner& base, example& ec) {
   }
 
   // insert raw predictions in multi_label
+  mc_label_data.partial_predictions.erase();
   for (uint32_t i=0; i<o.k; i++) mc_label_data.partial_predictions.push_back(o.pred[i].scalar);
 
   ec.pred.multiclass = prediction;

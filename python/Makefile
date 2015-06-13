@@ -13,7 +13,7 @@ PYTHON_HOME=/home/hhe/anaconda
 PYTHON_INCLUDE = $(shell $(PYTHON_HOME)/bin/python-config --includes)
 PYTHON_LDFLAGS = $(shell $(PYTHON_HOME)/bin/python-config --ldflags)
 
-PYTHON_LIBS = -l boost_python -l boost_program_options -lz
+PYTHON_LIBS = -l boost_python -lboost_program_options -lboost_system -lboost_filesystem -lz
 ifeq (,$(wildcard ../vowpalwabbit/vw.so))
   VWLIBS = ../vowpalwabbit/.libs/libvw.so ../vowpalwabbit/.libs/liballreduce.so
 else

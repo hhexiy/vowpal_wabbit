@@ -108,9 +108,21 @@ void my_learn(vw_ptr all, example_ptr ec) {
   all->learn(ec.get());
 }
 
+void my_predict(vw_ptr all, example_ptr ec) {
+  all->l->predict(*ec.get());
+}
+
 float my_learn_string(vw_ptr all, char*str) {
   example*ec = VW::read_example(*all, str);
   all->learn(ec);
+  float pp = ec->partial_prediction;
+  VW::finish_example(*all, ec);
+  return pp;
+}
+
+float my_predict_string(vw_ptr all, char*str) {
+  example*ec = VW::read_example(*all, str);
+  all->l->predict(*ec);
   float pp = ec->partial_prediction;
   VW::finish_example(*all, ec);
   return pp;
@@ -551,6 +563,8 @@ BOOST_PYTHON_MODULE(pylibvw) {
       .def("finish", &my_finish, "stop VW by calling finish (and, eg, write weights to disk)")
       .def("learn", &my_learn, "given a pyvw example, learn (and predict) on that example")
       .def("learn_string", &my_learn_string, "given an example specified as a string (as in a VW data file), learn on that example")
+      .def("predict", &my_predict, "given a pyvw example, predict on that example")
+      .def("predict_string", &my_predict_string, "given an example specified as a string (as in a VW data file), predict on that example")
       .def("hash_space", &VW::hash_space, "given a namespace (as a string), compute the hash of that namespace")
       .def("hash_feature", &VW::hash_feature, "given a feature string (arg2) and a hashed namespace (arg3), hash that feature")
       .def("finish_example", &my_finish_example, "tell VW that you're done with a given example")

@@ -70,7 +70,10 @@ void predict_or_learn(oaa& o, LEARNER::base_learner& base, example& ec) {
     for (uint32_t i=2; i<=o.k; i++) outputStringStream << ' ' << i << ':' << o.pred[i-1].scalar;
     o.all->print_text(o.all->raw_prediction, outputStringStream.str(), ec.tag);
   }
-  
+
+  // insert raw predictions in multi_label
+  for (uint32_t i=0; i<o.k; i++) mc_label_data.partial_predictions.push_back(o.pred[i].scalar);
+
   ec.pred.multiclass = prediction;
   ec.l.multi = mc_label_data;
 }

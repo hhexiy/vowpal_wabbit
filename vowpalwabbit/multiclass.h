@@ -5,6 +5,7 @@ license as described in the file LICENSE.
  */
 #pragma once
 #include "label_parser.h"
+#include "v_array.h"
 
 struct example;
 struct vw;
@@ -14,6 +15,7 @@ namespace MULTICLASS
   struct label_t {
     uint32_t label;
     float weight;
+    v_array<float> partial_predictions;
   };
   
   extern label_parser mc_label;

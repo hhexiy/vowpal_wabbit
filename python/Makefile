@@ -7,14 +7,15 @@
 #ifeq ($(BOOST_LIBRARY),)
 #  $(error Please run 'make' at the top level only)
 #endif
-
+BOOST_LIBRARY=-L/usr/lib/x86_64-linux-gnu
 PYTHON_VERSION = 2.7
-PYTHON_INCLUDE = $(shell python$(PYTHON_VERSION)-config --includes)
-PYTHON_LDFLAGS = $(shell python$(PYTHON_VERSION)-config --ldflags)
+PYTHON_HOME=/home/hhe/anaconda
+PYTHON_INCLUDE = $(shell $(PYTHON_HOME)/bin/python-config --includes)
+PYTHON_LDFLAGS = $(shell $(PYTHON_HOME)/bin/python-config --ldflags)
 
-PYTHON_LIBS = -l boost_python
+PYTHON_LIBS = -l boost_python -l boost_program_options -lz
 ifeq (,$(wildcard ../vowpalwabbit/vw.so))
-  VWLIBS = ../vowpalwabbit/libvw.a ../vowpalwabbit/liballreduce.a
+  VWLIBS = ../vowpalwabbit/.libs/libvw.so ../vowpalwabbit/.libs/liballreduce.so
 else
   VWLIBS = -L ../vowpalwabbit -l vw -l allreduce
 endif
@@ -26,7 +27,7 @@ all:
 things: $(PYLIBVW)
 
 ifeq "CYGWIN" "$(findstring CYGWIN,$(UNAME))"
-  PYTHON_LIBS = -l boost_python-mt
+  PYTHON_LIBS = -l boost_python-mt 
   PYLIBVW = pylibvw.dll
 endif
 ifneq ($(UNAME), Darwin)
@@ -35,7 +36,7 @@ endif
 
 STDLIBS = $(BOOST_LIBRARY) $(LIBS) $(PYTHON_LIBS)
 
-$(PYLIBVW): pylibvw.o  ../vowpalwabbit/libvw.a
+$(PYLIBVW): pylibvw.o  ../vowpalwabbit/.libs/libvw.so
 	$(CXX) -shared $(EXPORT_DYNAMIC) pylibvw.o $(BOOST_LIBRARY) $(PYTHON_LDFLAGS) $(VWLIBS) $(STDLIBS) -o $(PYLIBVW)
 
 pylibvw.o: pylibvw.cc

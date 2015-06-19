@@ -26,6 +26,7 @@ const size_t lCOST_SENSITIVE = 3;
 const size_t lCONTEXTUAL_BANDIT = 4;
 const size_t lMAX = 5;
 
+enum SearchState { INITIALIZE, INIT_TEST, INIT_TRAIN, LEARN, GET_TRUTH_STRING };
 
 void dont_delete_me(void*arg) { }
 
@@ -430,6 +431,10 @@ uint32_t search_get_num_actions(search_ptr sch) {
   return d->num_actions;
 }
 
+SearchState search_get_state(search_ptr sch) {
+  return (SearchState) sch->get_state();
+}
+
 void search_run_fn(Search::search&sch) {
   try {
     HookTask::task_data* d = sch.get_task_data<HookTask::task_data>();
@@ -556,6 +561,15 @@ BOOST_PYTHON_MODULE(pylibvw) {
   // This will enable user-defined docstrings and python signatures,
   // while disabling the C++ signatures
   py::docstring_options local_docstring_options(true, true, false);
+
+  // define enum for search state
+  py::enum_<SearchState>("SearchState")
+    .value("INITIALIZE", INITIALIZE)
+    .value("INIT_TEST", INIT_TEST)
+    .value("INIT_TRAIN", INIT_TRAIN)
+    .value("LEARN", LEARN)
+    .value("GET_TRUTH_STRING", GET_TRUTH_STRING)
+    ;
   
   // define the vw class
   py::class_<vw, vw_ptr>("vw", "the basic VW object that holds with weight vector, parser, etc.", py::no_init)
@@ -682,6 +696,7 @@ BOOST_PYTHON_MODULE(pylibvw) {
       .def("predict_needs_example", &Search::search::predictNeedsExample, "Check whether a subsequent call to predict is actually going to use the example you pass---i.e., can you skip feature computation?")
       .def("output", &search_output, "Add a string to the coutput (should only do if should_output returns True)")
       .def("get_num_actions", &search_get_num_actions, "Return the total number of actions search was initialized with")
+      .def("get_search_state", &search_get_state, "Return the current search state")
       .def("set_structured_predict_hook", &set_structured_predict_hook, "Set the hook (function pointer) that search should use for structured prediction (you don't want to call this yourself!")
       .def("set_force_oracle", &set_force_oracle, "For oracle decoding when .predict is run")
       .def("is_ldf", &Search::search::is_ldf, "check whether this search task is running in LDF mode")

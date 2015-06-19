@@ -159,6 +159,9 @@ namespace Search {
     // get stride_shift
     size_t get_stride_shift();
 
+    // get search state
+    uint8_t get_state();
+
     // pretty print a label
     std::string pretty_label(action a);
     

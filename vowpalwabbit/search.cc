@@ -2358,6 +2358,7 @@ namespace Search {
   size_t search::get_mask() { return this->priv->all->reg.weight_mask;}
   size_t search::get_stride_shift() { return this->priv->all->reg.stride_shift;}
   uint32_t search::get_history_length() { return (uint32_t)this->priv->history_length; }
+  uint8_t search::get_state() { return (uint8_t)this->priv->state; }
 
   string search::pretty_label(action a) {
     if (this->priv->all->sd->ldict) {

@@ -1,5 +1,5 @@
-import sys
 import pylibvw
+SearchState = pylibvw.SearchState
 
 class SearchTask():
     def __init__(self, vw, sch, num_actions):
@@ -32,6 +32,9 @@ class SearchTask():
     def learn(self, data_iterator):
         for my_example in data_iterator.__iter__():
             self._call_vw(my_example, isTest=False);
+
+    def get_search_state(self):
+        return self.sch.get_search_state()
 
     def example(self, initStringOrDict=None, labelType=pylibvw.vw.lDefault):
         """TODO"""
@@ -66,6 +69,13 @@ class vw(pylibvw.vw):
         #print ' '.join(l)
         pylibvw.vw.__init__(self,' '.join(l))
         self.finished = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,typ,value,traceback):
+        self.finish()
+        return typ is None
 
     def get_weight(self, index, offset=0):
         """Given an (integer) index (and an optional offset), return

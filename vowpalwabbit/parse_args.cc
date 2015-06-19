@@ -7,10 +7,13 @@ license as described in the file LICENSE.
 #include <float.h>
 #include <sstream>
 #include <fstream>
-#include <boost/filesystem.hpp>
+//#include <boost/filesystem.hpp>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "parse_regressor.h"
 #include "parser.h"
+#include "parse_primitives.h"
 #include "vw.h"
 #include "interactions.h"
 
@@ -19,6 +22,7 @@ license as described in the file LICENSE.
 #include "gd.h"
 #include "cbify.h"
 #include "oaa.h"
+#include "boosting.h"
 #include "multilabel_oaa.h"
 #include "rand48.h"
 #include "bs.h"
@@ -64,11 +68,6 @@ bool ends_with(string const &fullString, string const &ending)
     }
 }
 
-bool substring_equal(substring&a, substring&b) {
-  return (a.end - a.begin == b.end - b.begin) // same length
-      && (strncmp(a.begin, b.begin, a.end - a.begin) == 0);
-}  
-
 unsigned long long hash_file_contents(io_buf *io, int f) {
   unsigned long long v = 5289374183516789128;
   unsigned char buf[1024];
@@ -84,19 +83,36 @@ unsigned long long hash_file_contents(io_buf *io, int f) {
 }
 
 bool directory_exists(string path) {
-  boost::filesystem::path p(path);
-  return boost::filesystem::exists(p) && boost::filesystem::is_directory(p);
+  struct stat info;
+  if (stat(path.c_str(), &info) != 0)
+    return false;
+  else
+    return (info.st_mode & S_IFDIR);
+  //  boost::filesystem::path p(path);
+  //  return boost::filesystem::exists(p) && boost::filesystem::is_directory(p);
 }
 
-boost::filesystem::path find_in_path(vector<string> paths, string fname) {
-  // TODO: if fname has path separators, issue warning
+string find_in_path(vector<string> paths, string fname) {
+#ifdef _WIN32
+  string delimiter = "\\";
+#else
+  string delimiter = "/";
+#endif
+  for (string path : paths) {
+    string full = ends_with(path, delimiter) ? (path + fname) : (path + delimiter + fname);
+    ifstream f(full.c_str());
+    if (f.good())
+      return full;
+  }
+  return "";
+/*
   for (string path : paths) {
     boost::filesystem::path p(path);
     p /= fname;
     if (boost::filesystem::exists(p) && !boost::filesystem::is_directory(p))
       return p;
   }
-  return boost::filesystem::path("");
+*/
 }
 
 void parse_dictionary_argument(vw&all, string str) {
@@ -111,24 +127,24 @@ void parse_dictionary_argument(vw&all, string str) {
     s  += 2;
   }
 
-  boost::filesystem::path fname = find_in_path(all.dictionary_path, string(s));
-  if ( ! boost::filesystem::exists(fname) ) {
-    cerr << "error: cannot find dictionary '" << s << "' in path; try adding --dictionary_path?" << endl;
+  string fname = find_in_path(all.dictionary_path, string(s));
+  if (fname == "") { //  ! boost::filesystem::exists(fname) ) {
+    cerr << "error: cannot find dictionary '" << s << "' in path; try adding --dictionary_path" << endl;
     throw exception();
   }
 
-  bool is_gzip = ends_with(fname.c_str(), ".gz");
+  bool is_gzip = ends_with(fname, ".gz");
   io_buf* io = is_gzip ? new comp_io_buf : new io_buf;
   int fd = io->open_file(fname.c_str(), all.stdin_off, io_buf::READ);
   if (fd < 0) {
-    cerr << "error: cannot read dictionary from file '" << fname.c_str() << "'" << ", opening failed" << endl;
+    cerr << "error: cannot read dictionary from file '" << fname << "'" << ", opening failed" << endl;
     throw exception();
   }
   unsigned long long fd_hash = hash_file_contents(io, fd);
   io->close_file();
 
   if (! all.quiet)
-    cerr << "scanned dictionary '" << s << "' from '" << fname.c_str() << "', hash=" << hex << fd_hash << endl;
+    cerr << "scanned dictionary '" << s << "' from '" << fname << "', hash=" << hex << fd_hash << endl;
 
   // see if we've already read this dictionary
   for (size_t id=0; id<all.read_dictionaries.size(); id++)
@@ -142,7 +158,7 @@ void parse_dictionary_argument(vw&all, string str) {
   example *ec = alloc_examples(all.p->lp.label_size, 1);
   fd = io->open_file(fname.c_str(), all.stdin_off, io_buf::READ);
   if (fd < 0) {
-    cerr << "error: cannot re-read dictionary from file '" << fname.c_str() << "'" << ", opening failed" << endl;
+    cerr << "error: cannot re-read dictionary from file '" << fname << "'" << ", opening failed" << endl;
     throw exception();
   }
   size_t def = (size_t)' ';
@@ -678,12 +694,10 @@ void parse_feature_tweaks(vw& all)
     if (directory_exists("."))
       all.dictionary_path.push_back(".");
 
-    // PATH env variable from http://stackoverflow.com/questions/11295019/environment-path-directories-iteration
+    const std::string PATH = getenv( "PATH" );
 #if _WIN32
-    const std::string PATH = convert_to_utf8( _wgetenv(L"PATH") ); // Handle Unicode, just remove if you don't want/need this. convert_to_utf8 uses WideCharToMultiByte in the Win32 API
     const char delimiter = ';';
 #else
-    const std::string PATH = getenv( "PATH" );
     const char delimiter = ':';
 #endif
     if(!PATH.empty()) {
@@ -710,6 +724,7 @@ void parse_feature_tweaks(vw& all)
 
 void parse_example_tweaks(vw& all)
 {
+  string named_labels;
   new_options(all, "Example options")
     ("testonly,t", "Ignore label information and just test")
     ("holdout_off", "no holdout data in multiple passes")
@@ -725,7 +740,8 @@ void parse_example_tweaks(vw& all)
     ("loss_function", po::value<string>()->default_value("squared"), "Specify the loss function to be used, uses squared by default. Currently available ones are squared, classic, hinge, logistic and quantile.")
     ("quantile_tau", po::value<float>()->default_value(0.5), "Parameter \\tau associated with Quantile loss. Defaults to 0.5")
     ("l1", po::value<float>(&(all.l1_lambda)), "l_1 lambda")
-    ("l2", po::value<float>(&(all.l2_lambda)), "l_2 lambda");
+    ("l2", po::value<float>(&(all.l2_lambda)), "l_2 lambda")
+    ("named_labels", po::value<string>(&named_labels), "use names for labels (multiclass, etc.) rather than integers, argument specified all possible labels, comma-sep, eg \"--named_labels Noun,Verb,Adj,Punc\"");
   add_options(all);
 
   po::variables_map& vm = all.vm;
@@ -756,6 +772,12 @@ void parse_example_tweaks(vw& all)
   if (vm.count("min_prediction") || vm.count("max_prediction") || vm.count("testonly"))
     all.set_minmax = noop_mm;
 
+  if (vm.count("named_labels")) {
+    *all.file_options << " --named_labels " << named_labels << ' ';
+    all.sd->ldict = new namedlabels(named_labels);
+    cerr << "parsed " << all.sd->ldict->getK() << " named labels" << endl;
+  }
+  
   string loss_function = vm["loss_function"].as<string>();
   float loss_parameter = 0.0;
   if(vm.count("quantile_tau"))
@@ -932,6 +954,7 @@ void parse_reductions(vw& all)
   all.reduction_stack.push_back(binary_setup);
   all.reduction_stack.push_back(topk_setup);
   all.reduction_stack.push_back(oaa_setup);
+  all.reduction_stack.push_back(boosting_setup);
   all.reduction_stack.push_back(ect_setup);
   all.reduction_stack.push_back(log_multi_setup);
   all.reduction_stack.push_back(multilabel_oaa_setup);
@@ -960,13 +983,12 @@ vw& parse_args(int argc, char *argv[])
   all.vw_is_main = false;
   add_to_args(all, argc, argv);
 
-  size_t random_seed = 0;
   all.program_name = argv[0];
 
   time(&all.init_time);
 
   new_options(all, "VW options")
-    ("random_seed", po::value<size_t>(&random_seed), "seed random number generator")
+    ("random_seed", po::value<size_t>(&(all.random_seed)), "seed random number generator")
     ("ring_size", po::value<size_t>(&(all.p->ring_size)), "size of example ring");
   add_options(all);
 
@@ -994,7 +1016,7 @@ vw& parse_args(int argc, char *argv[])
   add_options(all);
 
   po::variables_map& vm = all.vm;
-  msrand48(random_seed);
+  msrand48(all.random_seed);
   parse_diagnostics(all, argc);
 
   all.sd->weighted_unlabeled_examples = all.sd->t;

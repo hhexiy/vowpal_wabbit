@@ -341,6 +341,7 @@ float ex_get_simplelabel_prediction(example_ptr ec) { return ec->pred.scalar; }
 
 uint32_t ex_get_multiclass_label(example_ptr ec) { return ec->l.multi.label; }
 float ex_get_multiclass_weight(example_ptr ec) { return ec->l.multi.weight; }
+float ex_set_multiclass_weight(example_ptr ec, float weight) { ec->l.multi.weight = weight; }
 uint32_t ex_get_multiclass_prediction(example_ptr ec) { return ec->pred.multiclass; }
 float ex_get_multiclass_partial_prediction(example_ptr ec, uint32_t i) { return ec->l.multi.partial_predictions[i]; }
 uint32_t ex_get_multiclass_num_classes(example_ptr ec) { return ec->l.multi.partial_predictions.size(); }
@@ -632,6 +633,7 @@ BOOST_PYTHON_MODULE(pylibvw) {
       .def("get_simplelabel_prediction", &ex_get_simplelabel_prediction, "Assuming a simple_label label type, return the final prediction")
       .def("get_multiclass_label", &ex_get_multiclass_label, "Assuming a multiclass label type, get the true label")
       .def("get_multiclass_weight", &ex_get_multiclass_weight, "Assuming a multiclass label type, get the importance weight")
+      .def("set_multiclass_weight", &ex_set_multiclass_weight, "Assuming a multiclass label type, (re)assign the importance weight")
       .def("get_multiclass_prediction", &ex_get_multiclass_prediction, "Assuming a multiclass label type, get the prediction")
       .def("get_multiclass_partial_prediction", &ex_get_multiclass_partial_prediction, "Assuming a multiclass label type, get the partial prediction")
       .def("get_multiclass_num_classes", &ex_get_multiclass_num_classes, "Assuming a multiclass label type, get the number of classes")

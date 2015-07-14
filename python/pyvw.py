@@ -86,23 +86,23 @@ class vw(pylibvw.vw):
         """Perform an online update; ec can either be an example
         object or a string (in which case it is parsed and then
         learned on)."""
-        if isinstance(ec, str):
-            self.learn_string(ec)
-        else:
-            if hasattr(ec, 'setup_done') and not ec.setup_done:
-                ec.setup_example()
-            pylibvw.vw.learn(self, ec)
+        #if isinstance(ec, str):
+        #    self.learn_string(ec)
+        #else:
+        #    if hasattr(ec, 'setup_done') and not ec.setup_done:
+        #        ec.setup_example()
+        pylibvw.vw.learn(self, ec)
 
     def predict(self, ec):
         """Perform an prediction; ec can either be an example
         object or a string (in which case it is parsed and then
         predicted on)."""
-        if isinstance(ec, str):
-            self.predict_string(ec)
-        else:
-            if hasattr(ec, 'setup_done') and not ec.setup_done:
-                ec.setup_example()
-            pylibvw.vw.predict(self, ec)
+        #if isinstance(ec, str):
+        #    self.predict_string(ec)
+        #else:
+        #    if hasattr(ec, 'setup_done') and not ec.setup_done:
+        #        ec.setup_example()
+        pylibvw.vw.predict(self, ec)
 
     def finish(self):
         """stop VW by calling finish (and, eg, write weights to disk)"""
@@ -416,8 +416,9 @@ class example(pylibvw.example):
         string is parsed as it would be from a VW data file into an
         example (and "setup_example" is run). if it is a dict, then we add all features in that dictionary. finally, if it's a function, we (repeatedly) execute it fn() until it's not a function any more (for lazy feature computation)."""
 
-        while hasattr(initStringOrDict, '__call__'):
-            initStringOrDict = initStringOrDict()
+        if initStringOrDict is not None:
+            while hasattr(initStringOrDict, '__call__'):
+                initStringOrDict = initStringOrDict()
 
         if initStringOrDict is None:
             pylibvw.example.__init__(self, vw, labelType)
